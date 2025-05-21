@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>List Genie 🧞 – v2</title>
+<title>List Genie 🧞</title>
 
 <!-- Persist last-used theme -->
 <script>
@@ -20,7 +20,7 @@ if (localStorage.getItem('theme') === 'dark') {
   --blue-600-d:#1d4ed8;    /* Convert active */
   --blue-500:#3b82f6;      /* Copy / Add 2nd */
   --blue-400:#60a5fa;      /* Info */
-  --red-500 :#ef4444;      /* Exclude */
+  --red-500 :#f07d7d;      /* Exclude */
 
   --glass:rgba(255,255,255,.25);
   --glass-border:rgba(255,255,255,.35);
@@ -41,14 +41,14 @@ html,body{
   margin:0;
   font-family:system-ui,sans-serif;
   background:linear-gradient(120deg,var(--bg-grad-start),var(--bg-grad-end));
-  background-size:400% 400%;
-  animation:aurora 18s ease-in-out infinite;
+  background-size:100% 100%; /* Remove the animated background */
+  /* animation:aurora 18s ease-in-out infinite; */ /* Comment out animation */
 }
-@keyframes aurora{
+/* @keyframes aurora{
   0%  {background-position:0 50%}
   50% {background-position:100% 50%}
   100%{background-position:0 50%}
-}
+} */
 
 /* ---------- CARD ---------- */
 .card{
@@ -57,7 +57,7 @@ html,body{
   padding:2rem;
   border-radius:18px;
   background:var(--glass);
-  backdrop-filter:blur(12px);
+  /* backdrop-filter:blur(12px); */ /* Remove blur effect */
   border:1px solid var(--glass-border);
   color:var(--text-main);
   box-shadow:0 10px 20px -5px rgba(0,0,0,.15);
@@ -138,10 +138,8 @@ button:focus-visible{outline:2px solid var(--blue-400);outline-offset:2px}
 .toggle-wrap input{width:16px;height:16px;}
 
 /* ---------- THEME TOGGLE ---------- */
-#themeToggle{
+#themeToggle, #videoButton {
   position:fixed;
-  top:1rem;
-  right:1rem;
   width:56px;
   height:56px;
   display:flex;
@@ -159,7 +157,15 @@ button:focus-visible{outline:2px solid var(--blue-400);outline-offset:2px}
   transition:transform .08s;
   z-index:10000;
 }
-#themeToggle:active{transform:scale(.9);}
+#themeToggle {
+  top:1rem;
+  right:1rem;
+}
+#videoButton {
+  top:5rem;
+  right:1rem;
+}
+#themeToggle:active, #videoButton:active {transform:scale(.9);}
 @keyframes wiggle{0%{transform:rotate(0)}50%{transform:rotate(-20deg)}100%{transform:rotate(0)}}
 #themeToggle.wiggle{animation:wiggle .4s ease;}
 #themeToggle span{filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
@@ -241,6 +247,9 @@ pre{white-space:pre-wrap;margin:.75rem 0;font-family:monospace;}
 
 <!-- Broccoli theme button -->
 <button id="themeToggle"><span>🥦</span></button>
+
+<!-- Video tutorial button -->
+<button id="videoButton" title="How-to Video"><span>🎬</span></button>
 
 <!-- MAIN CARD -->
 <div class="card">
@@ -447,7 +456,7 @@ convertBtn.onclick=()=>{
     comma    : stats1.uniq.join(', '),
     defq     : "('"+stats1.uniq.join("', '")+"')",
     defqNoQ  : '('+stats1.uniq.join(', ')+')',
-    qb       : stats1.uniq.join('|')
+    qb       : stats1.uniq.join(' | ')
   }[formatSel.value];
 
   if(secondWrap.style.display==='block'){
@@ -456,7 +465,7 @@ convertBtn.onclick=()=>{
       comma    : stats2.uniq.join(', '),
       defq     : "('"+stats2.uniq.join("', '")+"')",
       defqNoQ  : '('+stats2.uniq.join(', ')+')',
-      qb       : stats2.uniq.join('|')
+      qb       : stats2.uniq.join(' | ')
     }[formatSel.value];
   }else{
     stats2=null;
@@ -539,6 +548,12 @@ ${only2.join(', ') || '(none)'}`;
 /* ---------- EXCLUDE MODAL ---------- */
 excludeBtn.onclick=()=>excludeModal.style.display='flex';
 applyExcBtn.onclick=()=>{refreshExcludeSet();excludeModal.style.display='none';};
+
+/* ---------- VIDEO BUTTON ---------- */
+const videoBtn = $('videoButton');
+videoBtn.onclick = () => {
+  window.open('https://bcgov.sharepoint.com/:v:/r/sites/FOR-BCTSGIS/SIGG%20Document%20Library/Videos/LRM%20Tips%20and%20Tricks/List%20Genie%20v2.mp4?csf=1&web=1&nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJTdHJlYW1XZWJBcHAiLCJyZWZlcnJhbFZpZXciOiJTaGFyZURpYWxvZy1MaW5rIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXcifX0%3D&e=rHyFa8', '_blank');
+};
 </script>
 </body>
 </html>
