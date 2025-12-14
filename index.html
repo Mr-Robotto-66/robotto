@@ -3,32 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Welcome to My GitHub Page</title>
+  <title>Mr. Robotto's Tools</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 50px;
-      background-color: #f4f4f4;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     }
     h1 {
-      color: #333;
+      color: #fff;
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
     }
-    p {
-      color: #666;
+    .subtitle {
+      color: #f0f0f0;
+      font-size: 1.2em;
+      margin-bottom: 40px;
     }
-    a {
-      color: #007acc;
+    .tools-section {
+      margin-top: 40px;
+    }
+    .tools-section h2 {
+      color: #fff;
+      font-size: 2em;
+      margin-bottom: 30px;
+    }
+    .tool-card {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      padding: 30px;
+      margin: 20px 0;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      text-align: left;
+    }
+    .tool-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+    }
+    .tool-card h3 {
+      color: #fff;
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+    .tool-card p {
+      color: #f0f0f0;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .tool-link {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 25px;
       text-decoration: none;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px 0 rgba(31, 38, 135, 0.4);
     }
-    a:hover {
-      text-decoration: underline;
+    .tool-link:hover {
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px 0 rgba(31, 38, 135, 0.6);
+    }
+    .github-link {
+      margin-top: 40px;
+      color: #fff;
+    }
+    .github-link a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      border-bottom: 2px solid #fff;
+      transition: all 0.3s ease;
+    }
+    .github-link a:hover {
+      color: #667eea;
+      border-bottom-color: #667eea;
     }
   </style>
 </head>
 <body>
-  <h1>Welcome to My GitHub Pages Site</h1>
-  <p>This is the landing page for my project. Stay tuned for updates!</p>
-  <p><a href="https://github.com/YOUR_USERNAME">Visit my GitHub profile</a></p>
+  <div class="container">
+    <h1>🤖 Mr. Robotto's Tools</h1>
+    <p class="subtitle">Innovative tools to make your life easier</p>
+    
+    <div class="tools-section">
+      <h2>Available Tools</h2>
+      
+      <div class="tool-card">
+        <h3>📋 List Genie</h3>
+        <p>A powerful tool for creating, managing, and organizing lists with ease. List Genie helps you streamline your workflow and keep track of important items efficiently.</p>
+        <a href="List_Genie_v2.html" class="tool-link">Launch List Genie →</a>
+      </div>
+      
+      <!-- More tools coming soon! -->
+    </div>
+    
+    <div class="github-link">
+      <p><a href="https://github.com/Mr-Robotto-66">Visit Mr. Robotto's GitHub Profile</a></p>
+    </div>
+  </div>
 </body>
 </html>
