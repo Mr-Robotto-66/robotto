@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursery Supply Chain - Interactive Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, #1e293b 0%, rgba(30, 41, 59, 0.95) 100%);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        #header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        #header .subtitle {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-left: 12px;
+        }
+
+        #header .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        #header button {
+            background: #334155;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        #header button:hover {
+            background: #475569;
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+
+        #header button.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        #legend {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            min-width: 200px;
+        }
+
+        #legend h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 8px;
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            margin: 2px 0;
+        }
+
+        .legend-item:hover {
+            background: rgba(148, 163, 184, 0.1);
+        }
+
+        .legend-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+        }
+
+        .legend-item.dimmed {
+            opacity: 0.3;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .legend-clear {
+            font-size: 0.75rem;
+            color: #64748b;
+            cursor: pointer;
+            text-align: center;
+            padding: 8px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            transition: color 0.2s;
+        }
+
+        .legend-clear:hover {
+            color: #94a3b8;
+        }
+
+        #sidepanel {
+            position: fixed;
+            top: 60px;
+            left: -320px;
+            width: 300px;
+            height: calc(100vh - 60px);
+            background: rgba(30, 41, 59, 0.98);
+            border-right: 1px solid rgba(148, 163, 184, 0.1);
+            z-index: 99;
+            backdrop-filter: blur(8px);
+            transition: left 0.3s ease;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #sidepanel.open {
+            left: 0;
+        }
+
+        #sidepanel .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        #sidepanel .close-btn:hover {
+            background: rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+        }
+
+        #sidepanel h2 {
+            font-size: 1.125rem;
+            color: #f1f5f9;
+            margin-bottom: 8px;
+            margin-right: 32px;
+        }
+
+        #sidepanel .role-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            color: white;
+            font-weight: 500;
+        }
+
+        #sidepanel .description {
+            color: #cbd5e1;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        #sidepanel .section {
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        #sidepanel .section:last-child {
+            border-bottom: none;
+        }
+
+        #sidepanel h3 {
+            font-size: 0.875rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #sidepanel .connection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            cursor: pointer;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 2px 0;
+            transition: all 0.2s;
+        }
+
+        #sidepanel .connection-item:hover {
+            background: rgba(148, 163, 184, 0.1);
+        }
+
+        #sidepanel .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.95);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 12px 20px;
+            display: flex;
+            gap: 16px;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        #controls button {
+            background: #334155;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        #controls button:hover {
+            background: #475569;
+            border-color: rgba(148, 163, 184, 0.3);
+        }
+
+        #controls .zoom-info {
+            display: flex;
+            align-items: center;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            transition: padding-left 0.3s ease;
+        }
+
+        #canvas.panel-open {
+            padding-left: 300px;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            cursor: pointer;
+            transition: opacity 0.3s, transform 0.2s;
+        }
+
+        .node.dragging {
+            cursor: grabbing !important;
+        }
+
+        .node rect {
+            rx: 8;
+            ry: 8;
+            stroke-width: 2;
+            transition: all 0.3s;
+        }
+
+        .node:hover rect {
+            filter: brightness(1.2);
+        }
+
+        .node text {
+            font-size: 11px;
+            fill: #f8fafc;
+            text-anchor: middle;
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .node .role-badge {
+            font-size: 9px;
+            fill: rgba(248, 250, 252, 0.7);
+            font-weight: 400;
+        }
+
+        .link {
+            fill: none;
+            stroke-width: 2;
+            transition: opacity 0.3s, stroke-width 0.3s;
+            pointer-events: none;
+        }
+
+        .link.dimmed {
+            opacity: 0.1;
+        }
+
+        .link.highlighted {
+            stroke-width: 3;
+            opacity: 1;
+        }
+
+        .node.dimmed {
+            opacity: 0.15;
+        }
+
+        .node.role-filtered {
+            opacity: 0.2;
+        }
+
+        .node.highlighted rect {
+            stroke-width: 3;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .phase-label {
+            font-size: 14px;
+            fill: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        #tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 200;
+            max-width: 280px;
+            backdrop-filter: blur(8px);
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+        }
+
+        #tooltip h4 {
+            font-size: 0.875rem;
+            color: #f1f5f9;
+            margin-bottom: 6px;
+        }
+
+        #tooltip p {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        #tooltip .role {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            color: white;
+        }
+
+        .instructions {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #64748b;
+            font-size: 0.75rem;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.4;
+        }
+
+        /* Settings panel styles */
+        #settings-panel {
+            position: fixed;
+            top: 60px;
+            right: -350px;
+            width: 330px;
+            height: calc(100vh - 60px);
+            background: rgba(30, 41, 59, 0.98);
+            border-left: 1px solid rgba(148, 163, 184, 0.1);
+            z-index: 101;
+            backdrop-filter: blur(8px);
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #settings-panel.open {
+            right: 0;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .settings-section h4 {
+            font-size: 0.875rem;
+            color: #f1f5f9;
+            margin-bottom: 12px;
+        }
+
+        .setting-item {
+            margin-bottom: 12px;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .setting-item input, .setting-item select {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+        }
+
+        .setting-item input:focus, .setting-item select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-option.selected {
+            border-color: #f1f5f9;
+            transform: scale(1.1);
+        }
+
+        .export-btn {
+            background: #10b981 !important;
+            border-color: #10b981 !important;
+        }
+
+        .export-btn:hover {
+            background: #059669 !important;
+        }
+    </style>
+</head>
+<body style="background: rgb(15, 23, 42); cursor: default;">
+    <div id="header" style="background: linear-gradient(rgb(30, 41, 59) 0%, rgba(30, 41, 59, 0.95) 100%);">
+        <div style="display: flex; align-items: baseline;">
+            <h1>Nursery Supply Chain Visualization</h1>
+            <span class="subtitle">Seedling Production Workflow</span>
+        </div>
+        <div class="controls">
+            <button onclick="toggleDragMode()" id="drag-btn" class="">Drag Mode</button>
+            <button onclick="toggleSettings()">Settings</button>
+            <button onclick="exportAsHTML()" class="export-btn">Export HTML</button>
+        </div>
+    </div>
+
+    <!-- Enhanced Legend with Role Filtering -->
+    <div id="legend" style="background: rgba(30, 41, 59, 0.95);">
+        <h3>Supply Chain Roles</h3>
+        <div class="legend-item" data-role="Forest Operations">
+            <div class="legend-color" style="background: rgb(181, 26, 0);"></div>Forest Operations
+        </div>
+        <div class="legend-item" data-role="Nursery Staff">
+            <div class="legend-color" style="background: #3b82f6;"></div>Nursery Staff
+        </div>
+        <div class="legend-item" data-role="Quality Control">
+            <div class="legend-color" style="background: #8b5cf6;"></div>Quality Control
+        </div>
+        <div class="legend-item" data-role="Logistics">
+            <div class="legend-color" style="background: #f97316;"></div>Logistics
+        </div>
+        <div class="legend-item" data-role="Sales/External">
+            <div class="legend-color" style="background: #14b8a6;"></div>Sales/External
+        </div>
+        <div class="legend-item" data-role="Admin">
+            <div class="legend-color" style="background: #6b7280;"></div>Admin
+        </div>
+        <div class="legend-clear" onclick="clearRoleFilter()">Clear Filter</div>
+    </div>
+
+    <!-- Side Panel for Detailed Information -->
+    <div id="sidepanel" class="" style="background: rgba(30, 41, 59, 0.95);">
+        <button class="close-btn" onclick="closeSidePanel()">×</button>
+        <div id="panel-content">
+                <h2>RBH SEIS-CF CRM</h2>
+                <span class="role-badge" style="background: #6b7280">Admin</span>
+                <p class="description">Database and CRM system for tracking forestry operations</p>
+
+                <div class="section">
+                    <h3>Connected Activities (1)</h3>
+                    
+                        <div class="connection-item" onclick="highlightNode(10)">
+                            <div class="connection-dot" style="background: #6b7280"></div>
+                            <span>Forest Plan</span>
+                        </div>
+                    
+                </div>
+
+                <div class="section">
+                    <h3>Phase Information</h3>
+                    <p>Phase 1: Forest/Land Source</p>
+                </div>
+
+                <div class="section">
+                    <h3>Position</h3>
+                    <p>X: 213, Y: 531</p>
+                </div>
+            </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="" style="background: rgba(30, 41, 59, 0.95);">
+        <button class="close-btn" onclick="toggleSettings()">×</button>
+        <h2>Visualization Settings</h2>
+
+        <div class="settings-section">
+            <h4>Layout Controls</h4>
+            <div class="setting-item">
+                <label>Node Width</label>
+                <input type="range" id="node-width" min="80" max="200" value="130" oninput="updateNodeWidth(this.value)">
+            </div>
+            <div class="setting-item">
+                <label>Node Height</label>
+                <input type="range" id="node-height" min="30" max="80" value="40" oninput="updateNodeHeight(this.value)">
+            </div>
+            <div class="setting-item">
+                <label>Link Opacity</label>
+                <input type="range" id="link-opacity" min="0.1" max="1" step="0.1" value="0.4" oninput="updateLinkOpacity(this.value)">
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Color Themes</h4>
+            <div class="setting-item">
+                <label>Background Theme</label>
+                <select id="bg-theme" onchange="updateTheme(this.value)">
+                    <option value="dark">Dark (Current)</option>
+                    <option value="slate">Slate Blue</option>
+                    <option value="forest">Forest Green</option>
+                    <option value="ocean">Ocean Blue</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Role Colors</h4>
+            <div id="role-color-settings"><div class="setting-item">
+                    <label>Forest Operations</label>
+                    <input type="color" value="#10b981" onchange="updateRoleColor('Forest Operations', this.value)">
+                </div><div class="setting-item">
+                    <label>Nursery Staff</label>
+                    <input type="color" value="#3b82f6" onchange="updateRoleColor('Nursery Staff', this.value)">
+                </div><div class="setting-item">
+                    <label>Quality Control</label>
+                    <input type="color" value="#8b5cf6" onchange="updateRoleColor('Quality Control', this.value)">
+                </div><div class="setting-item">
+                    <label>Logistics</label>
+                    <input type="color" value="#f97316" onchange="updateRoleColor('Logistics', this.value)">
+                </div><div class="setting-item">
+                    <label>Sales/External</label>
+                    <input type="color" value="#14b8a6" onchange="updateRoleColor('Sales/External', this.value)">
+                </div><div class="setting-item">
+                    <label>Admin</label>
+                    <input type="color" value="#6b7280" onchange="updateRoleColor('Admin', this.value)">
+                </div></div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Export/Import</h4>
+            <div class="setting-item">
+                <button class="export-btn" onclick="exportSettings()" style="width: 100%; margin-bottom: 8px;">Export Settings (JSON)</button>
+                <input type="file" id="import-settings" accept=".json" onchange="importSettings(this)" style="width: 100%;">
+            </div>
+        </div>
+    </div>
+
+    <div id="controls" style="background: rgba(30, 41, 59, 0.95);">
+        <button onclick="zoomIn()">Zoom In (+)</button>
+        <button onclick="zoomOut()">Zoom Out (-)</button>
+        <button onclick="resetView()">Reset View</button>
+        <button onclick="clearSelection()">Clear Selection</button>
+        <div class="zoom-info">Scroll to zoom | Drag to pan</div>
+    </div>
+
+    <div class="instructions">
+        Click activities to see connections and details | Click legend roles to filter | Use drag mode to reposition nodes |
+        Export creates a complete standalone HTML with all your changes
+    </div>
+
+    <div id="tooltip" class="" style="left: 1118px; top: 523px;">
+        <h4>Technofarms</h4>
+        <p>High-tech farming operations using seedlings</p>
+        <span class="role" style="background: rgb(20, 184, 166);">Sales/External</span>
+    </div>
+
+    <div id="canvas" class="" style="cursor: grab;"></div>
+
+    <script>
+        // State management
+        let isDragMode = false;
+        let selectedRole = null;
+        let selectedNode = null;
+
+        // State variables with markers for export
+        let nodeWidth = /*STATE_nodeWidth*/130/*END_STATE*/;
+        let nodeHeight = /*STATE_nodeHeight*/40/*END_STATE*/;
+        let currentTheme = /*STATE_currentTheme*/"dark"/*END_STATE*/;
+
+        // Role colors with state marker
+        const roleColors = /*STATE_roleColors*/{"Forest Operations":"#b51a00","Nursery Staff":"#3b82f6","Quality Control":"#8b5cf6","Logistics":"#f97316","Sales/External":"#14b8a6","Admin":"#6b7280"}/*END_STATE*/;
+
+        // Smart text splitting for multi-line node labels
+        function splitTextSmart(text, maxLines = 3) {
+            const words = text.split(' ');
+            if (words.length === 1) {
+                if (text.length > 16) {
+                    return [text.substring(0, 14) + '...'];
+                }
+                return [text];
+            }
+
+            if (words.length === 2) {
+                return words;
+            }
+
+            const totalLength = text.length;
+            const targetLineLength = totalLength / Math.min(words.length, maxLines);
+
+            const lines = [];
+            let currentLine = '';
+
+            for (const word of words) {
+                if (lines.length >= maxLines - 1) {
+                    currentLine = currentLine ? currentLine + ' ' + word : word;
+                } else if (!currentLine) {
+                    currentLine = word;
+                } else if ((currentLine + ' ' + word).length <= targetLineLength + 4) {
+                    currentLine += ' ' + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+
+            if (currentLine) {
+                if (currentLine.length > 16 && lines.length === maxLines - 1) {
+                    currentLine = currentLine.substring(0, 14) + '...';
+                }
+                lines.push(currentLine);
+            }
+
+            return lines;
+        }
+
+        // Nursery Supply Chain Data - extracted from flowchart
+        const nodes = /*STATE_nodes*/[
+    {
+        "id": 1,
+        "name": "From Environment and Forestry",
+        "role": "Admin",
+        "phase": 1,
+        "x": -139.29307174682617,
+        "y": 50.21918487548828,
+        "desc": "Starting point - regulatory framework from environmental and forestry authorities"
+    },
+    {
+        "id": 2,
+        "name": "Land for Growing Trees",
+        "role": "Forest Operations",
+        "phase": 1,
+        "x": 108.38819122314453,
+        "y": 73.7247314453125,
+        "desc": "Identification and allocation of suitable land for tree cultivation"
+    },
+    {
+        "id": 3,
+        "name": "Plan the Harvest",
+        "role": "Forest Operations",
+        "phase": 1,
+        "x": 320,
+        "y": 80,
+        "desc": "Strategic planning for seed tree harvesting operations"
+    },
+    {
+        "id": 4,
+        "name": "Forest Owners",
+        "role": "Sales/External",
+        "phase": 1,
+        "x": 55.08740997314453,
+        "y": 176.6083984375,
+        "desc": "Private and public forest owners who provide land and seed sources"
+    },
+    {
+        "id": 5,
+        "name": "Neighbours and Community",
+        "role": "Sales/External",
+        "phase": 1,
+        "x": 60.06993103027344,
+        "y": 261.5909118652344,
+        "desc": "Community stakeholders and adjacent landowners involved in planning"
+    },
+    {
+        "id": 6,
+        "name": "Forestry Management Company",
+        "role": "Sales/External",
+        "phase": 1,
+        "x": 221.59091186523438,
+        "y": 263.11187744140625,
+        "desc": "Professional forestry companies managing timber operations"
+    },
+    {
+        "id": 7,
+        "name": "CFIR",
+        "role": "Admin",
+        "phase": 1,
+        "x": 66.71328735351562,
+        "y": 339.9300537109375,
+        "desc": "Certification and regulatory compliance body"
+    },
+    {
+        "id": 8,
+        "name": "Regional Market Research",
+        "role": "Admin",
+        "phase": 1,
+        "x": 63.391605377197266,
+        "y": 476.39862060546875,
+        "desc": "Market analysis and technical/scientific research for regional needs"
+    },
+    {
+        "id": 9,
+        "name": "RBH SEIS-CF CRM",
+        "role": "Admin",
+        "phase": 1,
+        "x": 212.86712646484375,
+        "y": 531.4860229492188,
+        "desc": "Database and CRM system for tracking forestry operations"
+    },
+    {
+        "id": 10,
+        "name": "Forest Plan",
+        "role": "Admin",
+        "phase": 1,
+        "x": 214.9475555419922,
+        "y": 396.39862060546875,
+        "desc": "Comprehensive forest management plan documentation"
+    },
+    {
+        "id": 11,
+        "name": "Notify the Harvest",
+        "role": "Forest Operations",
+        "phase": 2,
+        "x": 413.42657470703125,
+        "y": 141.4510498046875,
+        "desc": "Formal notification of planned harvest activities to stakeholders"
+    },
+    {
+        "id": 12,
+        "name": "Forest Feasibility Checks",
+        "role": "Forest Operations",
+        "phase": 2,
+        "x": 376.4685363769531,
+        "y": 319.5804138183594,
+        "desc": "Assessment of harvest viability and environmental impact"
+    },
+    {
+        "id": 13,
+        "name": "Prepare the Seed",
+        "role": "Nursery Staff",
+        "phase": 2,
+        "x": 520,
+        "y": 80,
+        "desc": "Collection and initial processing of seeds from mother trees"
+    },
+    {
+        "id": 14,
+        "name": "Planting of Mother Trees",
+        "role": "Nursery Staff",
+        "phase": 2,
+        "x": 374.479248046875,
+        "y": 219.34677124023438,
+        "desc": "Establishment of seed orchards with selected mother trees"
+    },
+    {
+        "id": 15,
+        "name": "Ready Seeds",
+        "role": "Nursery Staff",
+        "phase": 2,
+        "x": 704.772705078125,
+        "y": 77.89537811279297,
+        "desc": "Seeds prepared and ready for sowing or storage"
+    },
+    {
+        "id": 16,
+        "name": "Analyse and Prepare",
+        "role": "Quality Control",
+        "phase": 2,
+        "x": 537.6859741210938,
+        "y": 219.65103149414062,
+        "desc": "Seed testing, viability analysis, and treatment preparation"
+    },
+    {
+        "id": 17,
+        "name": "Save Seeds for Next Season",
+        "role": "Nursery Staff",
+        "phase": 2,
+        "x": 471.5559387207031,
+        "y": 376.4685363769531,
+        "desc": "Proper storage of seeds for future planting seasons"
+    },
+    {
+        "id": 18,
+        "name": "Index Seedlings",
+        "role": "Admin",
+        "phase": 2,
+        "x": 471.97552490234375,
+        "y": 508.2342529296875,
+        "desc": "Database registration and tracking of seedling batches"
+    },
+    {
+        "id": 19,
+        "name": "Construction of Infrastructure",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 704.8484497070312,
+        "y": 190.1744842529297,
+        "desc": "Building nursery facilities - greenhouses, irrigation, shade structures"
+    },
+    {
+        "id": 20,
+        "name": "Raise the Land",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 881.2662963867188,
+        "y": 78.45412635803223,
+        "desc": "Land preparation including beds, drainage, and soil conditioning"
+    },
+    {
+        "id": 21,
+        "name": "Sowing",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 740.2097778320312,
+        "y": 258.12933349609375,
+        "desc": "Planting seeds in nursery beds or containers"
+    },
+    {
+        "id": 22,
+        "name": "Mechanize",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 931.4860229492188,
+        "y": 281.2412872314453,
+        "desc": "Implementation of mechanical systems for nursery operations"
+    },
+    {
+        "id": 23,
+        "name": "Clearing",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 936.7482299804688,
+        "y": 191.69581604003906,
+        "desc": "Removal of dead seedlings and debris from growing areas"
+    },
+    {
+        "id": 24,
+        "name": "Weed",
+        "role": "Nursery Staff",
+        "phase": 3,
+        "x": 1068.2342529296875,
+        "y": 63.67133331298828,
+        "desc": "Weed control to ensure healthy seedling growth"
+    },
+    {
+        "id": 25,
+        "name": "Land Owner/Contractor",
+        "role": "Sales/External",
+        "phase": 3,
+        "x": 916.89208984375,
+        "y": 354.4335632324219,
+        "desc": "Landowners or contractors involved in nursery operations"
+    },
+    {
+        "id": 26,
+        "name": "Soils and Chemicals",
+        "role": "Quality Control",
+        "phase": 3,
+        "x": 770.1304321289062,
+        "y": 390.6932678222656,
+        "desc": "Soil amendments, fertilizers, and chemical inputs management"
+    },
+    {
+        "id": 27,
+        "name": "Nurseries",
+        "role": "Sales/External",
+        "phase": 3,
+        "x": 683.790283203125,
+        "y": 545.5957641601562,
+        "desc": "Network of nursery facilities in the supply chain"
+    },
+    {
+        "id": 28,
+        "name": "Chemical Treatment",
+        "role": "Quality Control",
+        "phase": 4,
+        "x": 1071.835693359375,
+        "y": 228.09442138671875,
+        "desc": "Application of pesticides, fungicides, and growth regulators"
+    },
+    {
+        "id": 29,
+        "name": "Fertiliser and Growth Promoters",
+        "role": "Quality Control",
+        "phase": 4,
+        "x": 855.62060546875,
+        "y": 474.927734375,
+        "desc": "Nutrient supplements and growth enhancement treatments"
+    },
+    {
+        "id": 30,
+        "name": "Land Owner/Contractor 2",
+        "role": "Sales/External",
+        "phase": 4,
+        "x": 1073.0770263671875,
+        "y": 358.1993103027344,
+        "desc": "Secondary contractors for specialized treatments"
+    },
+    {
+        "id": 31,
+        "name": "Land Available for Planting",
+        "role": "Forest Operations",
+        "phase": 4,
+        "x": 1243.181884765625,
+        "y": 71.69579315185547,
+        "desc": "Prepared sites ready to receive seedlings"
+    },
+    {
+        "id": 32,
+        "name": "Transport Seedlings",
+        "role": "Logistics",
+        "phase": 5,
+        "x": 1402.902099609375,
+        "y": 123.18182373046875,
+        "desc": "Movement of seedlings from nursery to distribution points"
+    },
+    {
+        "id": 33,
+        "name": "Counter/Freight/Dispatch",
+        "role": "Logistics",
+        "phase": 5,
+        "x": 1235.4371337890625,
+        "y": 286.2237854003906,
+        "desc": "Seedling dispatch operations and freight management"
+    },
+    {
+        "id": 34,
+        "name": "Seedlings Ready",
+        "role": "Nursery Staff",
+        "phase": 5,
+        "x": 1236.5384521484375,
+        "y": 203.32168579101562,
+        "desc": "Seedlings prepared and quality-checked for distribution"
+    },
+    {
+        "id": 35,
+        "name": "Packaging and Sorting",
+        "role": "Logistics",
+        "phase": 5,
+        "x": 1361.9405517578125,
+        "y": 387.8146667480469,
+        "desc": "Sorting seedlings by species, size, and destination"
+    },
+    {
+        "id": 36,
+        "name": "Seedlings Emigration",
+        "role": "Logistics",
+        "phase": 5,
+        "x": 1358.339111328125,
+        "y": 481.10137939453125,
+        "desc": "Export and inter-regional movement of seedlings"
+    },
+    {
+        "id": 37,
+        "name": "Soils and Chemicals Machinery",
+        "role": "Quality Control",
+        "phase": 5,
+        "x": 1074.7130126953125,
+        "y": 476.2843017578125,
+        "desc": "Equipment for soil preparation and chemical application at planting sites"
+    },
+    {
+        "id": 38,
+        "name": "Plant Seedlings",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1626.2935791015625,
+        "y": 135.08741760253906,
+        "desc": "Field planting operations at final destination"
+    },
+    {
+        "id": 39,
+        "name": "Seedlings Planted",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1696.3287353515625,
+        "y": 241.6608428955078,
+        "desc": "Confirmed completion of planting operations"
+    },
+    {
+        "id": 40,
+        "name": "Post Planting Care",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1842.76220703125,
+        "y": 195.0175018310547,
+        "desc": "Initial maintenance and care after planting"
+    },
+    {
+        "id": 41,
+        "name": "Landscapers/Contractors",
+        "role": "Sales/External",
+        "phase": 6,
+        "x": 1566.50341796875,
+        "y": 306.71331787109375,
+        "desc": "Professional landscapers and planting contractors"
+    },
+    {
+        "id": 42,
+        "name": "Free and Weed Control",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1781.0313720703125,
+        "y": 474.5979309082031,
+        "desc": "Vegetation management around planted seedlings"
+    },
+    {
+        "id": 43,
+        "name": "Established Seedlings",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1582.010498046875,
+        "y": 383.11187744140625,
+        "desc": "Successfully established plants meeting survival criteria"
+    },
+    {
+        "id": 44,
+        "name": "Blanking",
+        "role": "Forest Operations",
+        "phase": 6,
+        "x": 1598.339111328125,
+        "y": 518.0594787597656,
+        "desc": "Replanting to fill gaps from seedling mortality"
+    },
+    {
+        "id": 45,
+        "name": "Technofarms",
+        "role": "Sales/External",
+        "phase": 6,
+        "x": 1730.10498046875,
+        "y": 310.3146667480469,
+        "desc": "High-tech farming operations using seedlings"
+    }
+]/*END_STATE*/;
+
+        // Link opacity state
+        let linkOpacity = /*STATE_linkOpacity*/0.4/*END_STATE*/;
+
+        // Links - connections between nodes based on flowchart
+        const links = [
+            // Phase 1 connections
+            { source: 1, target: 2 },
+            { source: 2, target: 3 },
+            { source: 4, target: 6 },
+            { source: 5, target: 6 },
+            { source: 6, target: 12 },
+            { source: 7, target: 10 },
+            { source: 8, target: 10 },
+            { source: 9, target: 10 },
+            { source: 10, target: 12 },
+
+            // Phase 1 to Phase 2
+            { source: 3, target: 11 },
+            { source: 3, target: 13 },
+
+            // Phase 2 internal
+            { source: 11, target: 13 },
+            { source: 12, target: 14 },
+            { source: 13, target: 15 },
+            { source: 14, target: 16 },
+            { source: 15, target: 16 },
+            { source: 16, target: 17 },
+            { source: 16, target: 19 },
+            { source: 17, target: 18 },
+
+            // Phase 2 to Phase 3
+            { source: 15, target: 19 },
+            { source: 15, target: 20 },
+
+            // Phase 3 internal
+            { source: 19, target: 20 },
+            { source: 20, target: 21 },
+            { source: 21, target: 22 },
+            { source: 22, target: 23 },
+            { source: 23, target: 24 },
+            { source: 25, target: 21 },
+            { source: 26, target: 21 },
+            { source: 27, target: 18 },
+            { source: 27, target: 19 },
+
+            // Phase 3 to Phase 4
+            { source: 24, target: 28 },
+            { source: 26, target: 29 },
+            { source: 25, target: 30 },
+            { source: 30, target: 31 },
+
+            // Phase 4 internal
+            { source: 28, target: 31 },
+            { source: 29, target: 37 },
+            { source: 28, target: 34 },
+
+            // Phase 4 to Phase 5
+            { source: 31, target: 32 },
+            { source: 34, target: 32 },
+            { source: 34, target: 33 },
+
+            // Phase 5 internal
+            { source: 32, target: 33 },
+            { source: 33, target: 35 },
+            { source: 35, target: 36 },
+            { source: 37, target: 38 },
+
+            // Phase 5 to Phase 6
+            { source: 33, target: 38 },
+            { source: 35, target: 38 },
+            { source: 36, target: 38 },
+
+            // Phase 6 internal
+            { source: 38, target: 39 },
+            { source: 39, target: 40 },
+            { source: 41, target: 38 },
+            { source: 40, target: 42 },
+            { source: 42, target: 43 },
+            { source: 43, target: 45 },
+            { source: 42, target: 44 },
+
+            // Feedback loops
+            { source: 44, target: 27 },
+            { source: 18, target: 27 }
+        ];
+
+        // Phase labels
+        const phases = [
+            { name: 'Forest/Land Source', x: 140, y: 30 },
+            { name: 'Seed Preparation', x: 460, y: 30 },
+            { name: 'Nursery Growing', x: 800, y: 30 },
+            { name: 'Treatment', x: 1080, y: 30 },
+            { name: 'Distribution', x: 1320, y: 30 },
+            { name: 'Planting & End Use', x: 1600, y: 30 }
+        ];
+
+        // Create node map for quick lookup
+        const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+        // Build adjacency for highlighting
+        const adjacency = new Map();
+        nodes.forEach(n => adjacency.set(n.id, new Set()));
+        links.forEach(l => {
+            adjacency.get(l.source).add(l.target);
+            adjacency.get(l.target).add(l.source);
+        });
+
+        // SVG Setup
+        const width = 1900;
+        const height = 600;
+
+        const svg = d3.select('#canvas')
+            .append('svg')
+            .attr('viewBox', `0 0 ${width} ${height}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet');
+
+        // Zoom behavior
+        const g = svg.append('g');
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.3, 3])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Click on background to clear selection
+        svg.on('click', (event) => {
+            if (event.target === svg.node()) {
+                clearSelection();
+                closeSidePanel();
+            }
+        });
+
+        // Initialize visualization
+        function initVisualization() {
+            // Draw phase labels
+            g.selectAll('.phase-label')
+                .data(phases)
+                .enter()
+                .append('text')
+                .attr('class', 'phase-label')
+                .attr('x', d => d.x)
+                .attr('y', d => d.y)
+                .text(d => d.name);
+
+            // Draw phase separator lines
+            const phaseSeparators = [290, 580, 1000, 1160, 1480];
+            g.selectAll('.phase-separator')
+                .data(phaseSeparators)
+                .enter()
+                .append('line')
+                .attr('class', 'phase-separator')
+                .attr('x1', d => d)
+                .attr('y1', 50)
+                .attr('x2', d => d)
+                .attr('y2', height - 20)
+                .attr('stroke', '#1e293b')
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', '5,5');
+
+            drawLinks();
+            drawNodes();
+        }
+
+        // Calculate optimal anchors based on shortest distance
+        function calculateOptimalAnchors(sourceNode, targetNode) {
+            const sides = ['top', 'bottom', 'left', 'right'];
+            let minDistance = Infinity;
+            let bestAnchors = { source: 'right', target: 'left' };
+
+            for (const sourceSide of sides) {
+                for (const targetSide of sides) {
+                    const sourcePoint = getAnchorPoint(sourceNode, sourceSide, nodeWidth, nodeHeight);
+                    const targetPoint = getAnchorPoint(targetNode, targetSide, nodeWidth, nodeHeight);
+
+                    const distance = Math.hypot(targetPoint.x - sourcePoint.x, targetPoint.y - sourcePoint.y);
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        bestAnchors = { source: sourceSide, target: targetSide };
+                    }
+                }
+            }
+            return bestAnchors;
+        }
+
+        // Get anchor point position for a given side
+        function getAnchorPoint(node, anchor, nodeWidth, nodeHeight) {
+            const centerX = node.x;
+            const topY = node.y;
+            const centerY = node.y + nodeHeight / 2;
+            const bottomY = node.y + nodeHeight;
+
+            switch(anchor) {
+                case 'top':
+                    return { x: centerX, y: topY };
+                case 'bottom':
+                    return { x: centerX, y: bottomY };
+                case 'left':
+                    return { x: centerX - nodeWidth/2, y: centerY };
+                case 'right':
+                    return { x: centerX + nodeWidth/2, y: centerY };
+                default:
+                    return { x: centerX + nodeWidth/2, y: centerY };
+            }
+        }
+
+        // Get smart control points based on anchor directions
+        function getControlPoints(sourcePoint, targetPoint, sourceAnchor, targetAnchor) {
+            const dx = targetPoint.x - sourcePoint.x;
+            const dy = targetPoint.y - sourcePoint.y;
+
+            let cp1x, cp1y, cp2x, cp2y;
+            const baseOffset = Math.min(Math.abs(dx) * 0.4, Math.abs(dy) * 0.4, 120);
+            const offset = Math.max(baseOffset, 30);
+
+            switch(sourceAnchor) {
+                case 'top':
+                    cp1x = sourcePoint.x;
+                    cp1y = sourcePoint.y - offset;
+                    break;
+                case 'bottom':
+                    cp1x = sourcePoint.x;
+                    cp1y = sourcePoint.y + offset;
+                    break;
+                case 'left':
+                    cp1x = sourcePoint.x - offset;
+                    cp1y = sourcePoint.y;
+                    break;
+                case 'right':
+                default:
+                    cp1x = sourcePoint.x + offset;
+                    cp1y = sourcePoint.y;
+                    break;
+            }
+
+            switch(targetAnchor) {
+                case 'top':
+                    cp2x = targetPoint.x;
+                    cp2y = targetPoint.y - offset;
+                    break;
+                case 'bottom':
+                    cp2x = targetPoint.x;
+                    cp2y = targetPoint.y + offset;
+                    break;
+                case 'left':
+                    cp2x = targetPoint.x - offset;
+                    cp2y = targetPoint.y;
+                    break;
+                case 'right':
+                default:
+                    cp2x = targetPoint.x + offset;
+                    cp2y = targetPoint.y;
+                    break;
+            }
+
+            return { cp1x, cp1y, cp2x, cp2y };
+        }
+
+        // Dynamic bezier path
+        function createBezierPath(d) {
+            const source = nodeMap.get(d.source);
+            const target = nodeMap.get(d.target);
+
+            const { source: sourceAnchor, target: targetAnchor } = calculateOptimalAnchors(source, target);
+
+            const sourcePoint = getAnchorPoint(source, sourceAnchor, nodeWidth, nodeHeight);
+            const targetPoint = getAnchorPoint(target, targetAnchor, nodeWidth, nodeHeight);
+
+            const { cp1x, cp1y, cp2x, cp2y } = getControlPoints(
+                sourcePoint,
+                targetPoint,
+                sourceAnchor,
+                targetAnchor
+            );
+
+            return `M ${sourcePoint.x},${sourcePoint.y} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetPoint.x},${targetPoint.y}`;
+        }
+
+        // Draw links
+        function drawLinks() {
+            const linkElements = g.selectAll('.link')
+                .data(links)
+                .enter()
+                .append('path')
+                .attr('class', 'link')
+                .attr('d', createBezierPath)
+                .attr('stroke', d => {
+                    const sourceNode = nodeMap.get(d.source);
+                    return roleColors[sourceNode.role] || '#64748b';
+                })
+                .attr('opacity', linkOpacity);
+
+            window.linkElements = linkElements;
+        }
+
+        // Draw nodes
+        function drawNodes() {
+            const nodeElements = g.selectAll('.node')
+                .data(nodes)
+                .enter()
+                .append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${d.x - nodeWidth/2}, ${d.y})`)
+                .on('click', handleNodeClick)
+                .on('mouseenter', handleNodeHover)
+                .on('mouseleave', handleNodeLeave);
+
+            // Make nodes draggable
+            const drag = d3.drag()
+                .on('start', function(event, d) {
+                    if (isDragMode) {
+                        d3.select(this).classed('dragging', true);
+                        d3.select('body').style('cursor', 'grabbing');
+                    }
+                })
+                .on('drag', function(event, d) {
+                    if (isDragMode) {
+                        d.x = event.x;
+                        d.y = event.y;
+                        d3.select(this).attr('transform', `translate(${d.x - nodeWidth/2}, ${d.y})`);
+                        window.linkElements.attr('d', createBezierPath);
+                    }
+                })
+                .on('end', function(event, d) {
+                    if (isDragMode) {
+                        d3.select(this).classed('dragging', false);
+                        d3.select('body').style('cursor', 'default');
+                    }
+                });
+
+            nodeElements.call(drag);
+
+            nodeElements.append('rect')
+                .attr('width', nodeWidth)
+                .attr('height', nodeHeight)
+                .attr('fill', d => {
+                    const color = roleColors[d.role] || '#64748b';
+                    return color + '33';
+                })
+                .attr('stroke', d => roleColors[d.role] || '#64748b');
+
+            // Multi-line text with smart wrapping
+            const textElements = nodeElements.append('text')
+                .attr('x', nodeWidth / 2);
+
+            textElements.each(function(d) {
+                const lines = splitTextSmart(d.name, 3);
+                const lineCount = lines.length;
+                const startY = lineCount === 1 ? 22 : (lineCount === 2 ? 14 : 10);
+                const lineHeight = 12;
+
+                const el = d3.select(this);
+                lines.forEach((line, i) => {
+                    el.append('tspan')
+                        .attr('x', nodeWidth / 2)
+                        .attr('y', startY + i * lineHeight)
+                        .text(line);
+                });
+            });
+
+            window.nodeElements = nodeElements;
+        }
+
+        // Enhanced legend functionality
+        function setupLegend() {
+            document.querySelectorAll('.legend-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const role = this.getAttribute('data-role');
+                    toggleRoleFilter(role);
+                });
+            });
+        }
+
+        function toggleRoleFilter(role) {
+            const legendItems = document.querySelectorAll('.legend-item');
+
+            if (selectedRole === role) {
+                selectedRole = null;
+                legendItems.forEach(item => {
+                    item.classList.remove('active', 'dimmed');
+                });
+                window.nodeElements.classed('role-filtered', false);
+                window.linkElements.attr('opacity', linkOpacity);
+            } else {
+                selectedRole = role;
+                legendItems.forEach(item => {
+                    const itemRole = item.getAttribute('data-role');
+                    if (itemRole === role) {
+                        item.classList.add('active');
+                        item.classList.remove('dimmed');
+                    } else {
+                        item.classList.remove('active');
+                        item.classList.add('dimmed');
+                    }
+                });
+
+                window.nodeElements.classed('role-filtered', d => d.role !== role);
+                window.linkElements.attr('opacity', d => {
+                    const sourceNode = nodeMap.get(d.source);
+                    const targetNode = nodeMap.get(d.target);
+                    return (sourceNode.role === role || targetNode.role === role) ? 0.8 : 0.1;
+                });
+            }
+        }
+
+        function clearRoleFilter() {
+            selectedRole = null;
+            document.querySelectorAll('.legend-item').forEach(item => {
+                item.classList.remove('active', 'dimmed');
+            });
+            window.nodeElements.classed('role-filtered', false);
+            window.linkElements.attr('opacity', linkOpacity);
+        }
+
+        // Side panel functionality
+        function showSidePanel(nodeData) {
+            const panel = document.getElementById('sidepanel');
+            const content = document.getElementById('panel-content');
+
+            const connected = adjacency.get(nodeData.id);
+            const connectedNodes = Array.from(connected).map(id => nodeMap.get(id));
+
+            content.innerHTML = `
+                <h2>${nodeData.name}</h2>
+                <span class="role-badge" style="background: ${roleColors[nodeData.role]}">${nodeData.role}</span>
+                <p class="description">${nodeData.desc}</p>
+
+                <div class="section">
+                    <h3>Connected Activities (${connectedNodes.length})</h3>
+                    ${connectedNodes.map(node => `
+                        <div class="connection-item" onclick="highlightNode(${node.id})">
+                            <div class="connection-dot" style="background: ${roleColors[node.role]}"></div>
+                            <span>${node.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="section">
+                    <h3>Phase Information</h3>
+                    <p>Phase ${nodeData.phase}: ${phases[nodeData.phase - 1]?.name || 'Unknown'}</p>
+                </div>
+
+                <div class="section">
+                    <h3>Position</h3>
+                    <p>X: ${Math.round(nodeData.x)}, Y: ${Math.round(nodeData.y)}</p>
+                </div>
+            `;
+
+            panel.classList.add('open');
+            document.getElementById('canvas').classList.add('panel-open');
+        }
+
+        function closeSidePanel() {
+            document.getElementById('sidepanel').classList.remove('open');
+            document.getElementById('canvas').classList.remove('panel-open');
+        }
+
+        function highlightNode(nodeId) {
+            const nodeData = nodeMap.get(nodeId);
+            handleNodeClick(null, nodeData);
+        }
+
+        // Enhanced node interaction
+        function handleNodeClick(event, d) {
+            if (event) event.stopPropagation();
+
+            if (isDragMode) return;
+
+            if (selectedNode === d.id) {
+                clearSelection();
+                closeSidePanel();
+                return;
+            }
+
+            selectedNode = d.id;
+            const connected = adjacency.get(d.id);
+
+            window.nodeElements
+                .classed('dimmed', n => n.id !== d.id && !connected.has(n.id))
+                .classed('highlighted', n => n.id === d.id);
+
+            window.linkElements
+                .classed('dimmed', l => l.source !== d.id && l.target !== d.id)
+                .classed('highlighted', l => l.source === d.id || l.target === d.id);
+
+            showSidePanel(d);
+        }
+
+        // Tooltip functionality
+        const tooltip = d3.select('#tooltip');
+
+        function handleNodeHover(event, d) {
+            if (isDragMode) return;
+
+            tooltip.select('h4').text(d.name);
+            tooltip.select('p').text(d.desc);
+            tooltip.select('.role')
+                .text(d.role)
+                .style('background', roleColors[d.role]);
+
+            tooltip
+                .style('left', (event.pageX + 15) + 'px')
+                .style('top', (event.pageY - 10) + 'px')
+                .classed('visible', true);
+        }
+
+        function handleNodeLeave() {
+            tooltip.classed('visible', false);
+        }
+
+        // Mode toggling
+        function toggleDragMode() {
+            isDragMode = !isDragMode;
+            const btn = document.getElementById('drag-btn');
+
+            if (isDragMode) {
+                btn.textContent = 'Lock Mode';
+                btn.classList.add('active');
+                document.getElementById('canvas').style.cursor = 'grab';
+            } else {
+                btn.textContent = 'Drag Mode';
+                btn.classList.remove('active');
+                document.getElementById('canvas').style.cursor = 'default';
+            }
+        }
+
+        // Settings panel
+        function toggleSettings() {
+            const panel = document.getElementById('settings-panel');
+            panel.classList.toggle('open');
+
+            if (panel.classList.contains('open')) {
+                populateRoleColorSettings();
+            }
+        }
+
+        function populateRoleColorSettings() {
+            const container = document.getElementById('role-color-settings');
+            container.innerHTML = '';
+
+            Object.keys(roleColors).forEach(role => {
+                const div = document.createElement('div');
+                div.className = 'setting-item';
+                div.innerHTML = `
+                    <label>${role}</label>
+                    <input type="color" value="${roleColors[role]}" onchange="updateRoleColor('${role}', this.value)">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateRoleColor(role, color) {
+            roleColors[role] = color;
+
+            document.querySelector(`[data-role="${role}"] .legend-color`).style.background = color;
+
+            window.nodeElements.selectAll('rect')
+                .attr('fill', d => {
+                    const color = roleColors[d.role] || '#64748b';
+                    return color + '33';
+                })
+                .attr('stroke', d => roleColors[d.role] || '#64748b');
+
+            window.linkElements.attr('stroke', d => {
+                const sourceNode = nodeMap.get(d.source);
+                return roleColors[sourceNode.role] || '#64748b';
+            });
+        }
+
+        function updateNodeWidth(value) {
+            nodeWidth = parseInt(value);
+
+            window.nodeElements
+                .select('rect')
+                .attr('width', nodeWidth);
+
+            window.nodeElements
+                .selectAll('text')
+                .attr('x', nodeWidth / 2);
+
+            window.nodeElements
+                .selectAll('tspan')
+                .attr('x', nodeWidth / 2);
+
+            window.nodeElements
+                .attr('transform', d => `translate(${d.x - nodeWidth/2}, ${d.y})`);
+
+            window.linkElements.attr('d', createBezierPath);
+        }
+
+        function updateNodeHeight(value) {
+            nodeHeight = parseInt(value);
+
+            window.nodeElements
+                .select('rect')
+                .attr('height', nodeHeight);
+
+            window.linkElements.attr('d', createBezierPath);
+        }
+
+        function updateLinkOpacity(value) {
+            linkOpacity = parseFloat(value);
+            window.linkElements.attr('opacity', linkOpacity);
+        }
+
+        // Theme management
+        const themes = {
+            dark: { body: '#0f172a', header: '#1e293b', panel: 'rgba(30, 41, 59, 0.95)' },
+            slate: { body: '#1e293b', header: '#334155', panel: 'rgba(51, 65, 85, 0.95)' },
+            forest: { body: '#14261a', header: '#1a3324', panel: 'rgba(26, 51, 36, 0.95)' },
+            ocean: { body: '#0c1929', header: '#152238', panel: 'rgba(21, 34, 56, 0.95)' }
+        };
+
+        function updateTheme(themeName) {
+            currentTheme = themeName;
+            const theme = themes[themeName];
+            if (theme) {
+                document.body.style.background = theme.body;
+                document.getElementById('header').style.background = `linear-gradient(180deg, ${theme.header} 0%, ${theme.panel} 100%)`;
+                document.getElementById('legend').style.background = theme.panel;
+                document.getElementById('sidepanel').style.background = theme.panel;
+                document.getElementById('settings-panel').style.background = theme.panel;
+                document.getElementById('controls').style.background = theme.panel;
+            }
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedNode = null;
+            if (window.nodeElements) {
+                window.nodeElements.classed('dimmed', false).classed('highlighted', false);
+                window.linkElements.classed('dimmed', false).classed('highlighted', false);
+            }
+        }
+
+        // Collect current state for export
+        function collectCurrentState() {
+            return {
+                nodeWidth,
+                nodeHeight,
+                linkOpacity: parseFloat(document.getElementById('link-opacity')?.value) || linkOpacity,
+                currentTheme: document.getElementById('bg-theme')?.value || currentTheme,
+                roleColors: { ...roleColors },
+                nodes: nodes.map(n => ({
+                    id: n.id,
+                    name: n.name,
+                    role: n.role,
+                    phase: n.phase,
+                    x: n.x,
+                    y: n.y,
+                    desc: n.desc
+                }))
+            };
+        }
+
+        // Export as complete HTML file with current state baked in
+        async function exportAsHTML() {
+            try {
+                const state = collectCurrentState();
+
+                let html;
+                let fetchWorked = false;
+                try {
+                    const response = await fetch(window.location.href);
+                    if (response.ok) {
+                        html = await response.text();
+                        fetchWorked = true;
+                    }
+                } catch (e) {
+                    // Fetch failed, will use fallback
+                }
+
+                if (!fetchWorked) {
+                    const canvas = document.getElementById('canvas');
+                    const svgElement = canvas.querySelector('svg');
+
+                    if (svgElement) {
+                        svgElement.remove();
+                    }
+
+                    document.getElementById('sidepanel').classList.remove('open');
+                    document.getElementById('settings-panel').classList.remove('open');
+                    canvas.classList.remove('panel-open');
+                    document.getElementById('tooltip').classList.remove('visible');
+                    document.getElementById('drag-btn').classList.remove('active');
+                    document.getElementById('drag-btn').textContent = 'Drag Mode';
+
+                    html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+                    if (svgElement) {
+                        canvas.appendChild(svgElement);
+                    }
+                }
+
+                html = html.replace(
+                    /\/\*STATE_nodeWidth\*\/\d+\/\*END_STATE\*\//g,
+                    `/*STATE_nodeWidth*/${state.nodeWidth}/*END_STATE*/`
+                );
+
+                html = html.replace(
+                    /\/\*STATE_nodeHeight\*\/\d+\/\*END_STATE\*\//g,
+                    `/*STATE_nodeHeight*/${state.nodeHeight}/*END_STATE*/`
+                );
+
+                html = html.replace(
+                    /\/\*STATE_linkOpacity\*\/[\d.]+\/\*END_STATE\*\//g,
+                    `/*STATE_linkOpacity*/${state.linkOpacity}/*END_STATE*/`
+                );
+
+                html = html.replace(
+                    /\/\*STATE_currentTheme\*\/"[^"]*"\/\*END_STATE\*\//g,
+                    `/*STATE_currentTheme*/${JSON.stringify(state.currentTheme)}/*END_STATE*/`
+                );
+
+                html = html.replace(
+                    /\/\*STATE_roleColors\*\/\{[\s\S]*?\}\/\*END_STATE\*\//g,
+                    `/*STATE_roleColors*/${JSON.stringify(state.roleColors)}/*END_STATE*/`
+                );
+
+                html = html.replace(
+                    /\/\*STATE_nodes\*\/\[[\s\S]*?\]\/\*END_STATE\*\//g,
+                    `/*STATE_nodes*/${JSON.stringify(state.nodes, null, 4)}/*END_STATE*/`
+                );
+
+                const date = new Date();
+                const dateStr = date.toISOString().split('T')[0];
+                const filename = `nursery-supply-chain-${dateStr}.html`;
+
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                console.log('Exported:', filename);
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+
+        // Legacy export functions (JSON)
+        function exportLayout() {
+            const layoutData = {
+                nodes: nodes.map(n => ({id: n.id, x: n.x, y: n.y})),
+                settings: {
+                    roleColors: {...roleColors},
+                    nodeWidth,
+                    nodeHeight
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(layoutData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nursery-supply-chain-layout.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportSettings() {
+            const settings = {
+                roleColors: {...roleColors},
+                nodeWidth,
+                nodeHeight,
+                linkOpacity,
+                currentTheme
+            };
+
+            const blob = new Blob([JSON.stringify(settings, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nursery-settings.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importSettings(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const settings = JSON.parse(e.target.result);
+
+                    if (settings.roleColors) {
+                        Object.assign(roleColors, settings.roleColors);
+                    }
+
+                    if (settings.nodeWidth) {
+                        nodeWidth = settings.nodeWidth;
+                        document.getElementById('node-width').value = nodeWidth;
+                    }
+
+                    if (settings.nodeHeight) {
+                        nodeHeight = settings.nodeHeight;
+                        document.getElementById('node-height').value = nodeHeight;
+                    }
+
+                    initVisualization();
+
+                } catch (error) {
+                    alert('Error importing settings: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Zoom controls
+        function zoomIn() {
+            svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+        }
+
+        function zoomOut() {
+            svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+        }
+
+        function resetView() {
+            svg.transition().duration(500).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(50, 50).scale(0.85)
+            );
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initVisualization();
+            setupLegend();
+
+            updateTheme(currentTheme);
+
+            document.getElementById('node-width').value = nodeWidth;
+            document.getElementById('node-height').value = nodeHeight;
+            document.getElementById('link-opacity').value = linkOpacity;
+            document.getElementById('bg-theme').value = currentTheme;
+
+            svg.call(zoom.transform, d3.zoomIdentity.translate(50, 50).scale(0.8));
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                clearSelection();
+                closeSidePanel();
+            }
+            if (e.key === '+' || e.key === '=') zoomIn();
+            if (e.key === '-') zoomOut();
+            if (e.key === '0') resetView();
+            if (e.key === 'd' || e.key === 'D') toggleDragMode();
+        });
+    </script>
+
+
+</body></html>
